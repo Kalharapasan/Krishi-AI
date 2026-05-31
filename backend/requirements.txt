@@ -1,0 +1,10 @@
+fastapi[standard]
+uvicorn
+torch
+torchvision
+python-multipart
+Pillow
+python-dotenv
+grad-cam
+opencv-python-headless
+psycopg2-binary
