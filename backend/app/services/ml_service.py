@@ -45,3 +45,18 @@ class PlantDiseaseClassifier(nn.Module):
         x = self.drop2(x)
         x = self.fc3(x)
         return x
+
+def load_model():
+    global model
+    print("Loading PyTorch model into memory...")
+    try:
+        pytorch_model = PlantDiseaseClassifier(num_classes=settings.NUM_CLASSES)
+        state_dict = torch.load(settings.LOCAL_MODEL_PATH, map_location=device)
+        pytorch_model.load_state_dict(state_dict)
+        pytorch_model.to(device)
+        pytorch_model.eval()
+        
+        model = pytorch_model
+        print("Model loaded successfully.")
+    except Exception as e:
+        print(f"Error loading model: {e}")
