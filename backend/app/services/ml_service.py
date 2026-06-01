@@ -7,3 +7,6 @@ import io
 import base64
 import numpy as np
 import cv2
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = None
