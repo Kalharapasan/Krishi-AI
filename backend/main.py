@@ -8,16 +8,6 @@ from app.config import settings
 from app.database import init_db
 
 
-app = FastAPI(
-    title="Krishi AI Backend API",
-    description="Backend for crop disease diagnosis using Advanced PyTorch Continuous Learning.",
-    version="1.0.0",
-    lifespan=lifespan
-)
-
-# Include routers
-app.include_router(router, prefix="/api")
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -34,6 +24,16 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     print("Shutting down Krishi AI Backend...")
+
+app = FastAPI(
+    title="Krishi AI Backend API",
+    description="Backend for crop disease diagnosis using Advanced PyTorch Continuous Learning.",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Include routers
+app.include_router(router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
