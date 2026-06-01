@@ -82,3 +82,15 @@ def export_verified_data():
         
     shutil.make_archive("verified_data", 'zip', "data/verified")
     return FileResponse("verified_data.zip", media_type="application/zip", filename="verified_data.zip")
+
+@router.post("/upload-model", dependencies=[Depends(verify_colab_key)])
+async def upload_new_model(file: UploadFile = File(...)):
+    """Colab calls this to upload the newly trained model, updating the backend instantly."""
+    if not file.filename.endswith('.pth'):
+        raise HTTPException(status_code=400, detail="Must be a .pth file")
+        
+    with open(settings.LOCAL_MODEL_PATH, "wb") as f:
+        f.write(await file.read())
+        
+    load_model()
+    return {"status": "success", "message": "Model successfully updated and reloaded in real time!"}
