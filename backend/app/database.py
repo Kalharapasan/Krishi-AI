@@ -34,3 +34,14 @@ def save_diagnosis(image_path: str, predicted: str, confidence: float):
     conn.commit()
     conn.close()
     return record_id
+
+def update_feedback(record_id: int, actual_disease: str):
+    conn = psycopg2.connect(settings.DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE diagnosis_history 
+        SET user_feedback_disease = %s, is_verified = 1
+        WHERE id = %s
+    ''', (actual_disease, record_id))
+    conn.commit()
+    conn.close()
