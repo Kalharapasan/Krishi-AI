@@ -22,3 +22,15 @@ def init_db():
         print("PostgreSQL Database initialized successfully.")
     except Exception as e:
         print(f"Failed to initialize PostgreSQL: {e}")
+    
+def save_diagnosis(image_path: str, predicted: str, confidence: float):
+    conn = psycopg2.connect(settings.DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO diagnosis_history (image_path, predicted_disease, confidence)
+        VALUES (%s, %s, %s) RETURNING id
+    ''', (image_path, predicted, confidence))
+    record_id = cursor.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return record_id
