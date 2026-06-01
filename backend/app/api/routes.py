@@ -52,3 +52,23 @@ async def diagnose_crop(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.post("/feedback")
+async def submit_feedback(record_id: int = Form(...), correct_disease: str = Form(...)):
+    update_feedback(record_id, correct_disease)
+    import psycopg2
+    conn = psycopg2.connect(settings.DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute("SELECT image_path FROM diagnosis_history WHERE id=%s", (record_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row and os.path.exists(row[0]):
+        old_path = row[0]
+        filename = os.path.basename(old_path)
+        disease_dir = os.path.join("data/verified", correct_disease)
+        os.makedirs(disease_dir, exist_ok=True)
+        new_path = os.path.join(disease_dir, filename)
+        shutil.move(old_path, new_path)
+        
+    return {"status": "success", "message": "Feedback saved for continuous learning."}
