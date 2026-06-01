@@ -75,3 +75,33 @@ def predict(image_bytes: bytes):
         confidence = torch.nn.functional.softmax(outputs, dim=1)[0][predicted_idx].item()
         
     disease_name = settings.CLASS_NAMES[predicted_idx.item()] if predicted_idx.item() < len(settings.CLASS_NAMES) else f"Unknown ({predicted_idx.item()})"
+    
+    # 2. Explainable AI (Grad-CAM)
+    heatmap_base64 = None
+    try:
+        from pytorch_grad_cam import GradCAM
+        from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+        from pytorch_grad_cam.utils.image import show_cam_on_image
+        
+        # Target the last convolutional layer of EfficientNet
+        target_layers = [model.model.features[-1]]
+        cam = GradCAM(model=model, target_layers=target_layers)
+        targets = [ClassifierOutputTarget(predicted_idx.item())]
+        
+        grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
+        grayscale_cam = grayscale_cam[0, :]
+        
+        # Resize original image to match tensor size (224x224) and normalize [0, 1]
+        rgb_img = np.float32(image.resize((224, 224))) / 255
+        cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
+        
+        # Encode as Base64 JPEG
+        cam_pil = Image.fromarray(cam_image)
+        buffered = io.BytesIO()
+        cam_pil.save(buffered, format="JPEG")
+        heatmap_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    
+    except Exception as e:
+        print(f"Grad-CAM generation failed: {e}")
+        
+    return disease_name, round(confidence * 100, 2), heatmap_base64
