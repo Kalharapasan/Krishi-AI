@@ -72,3 +72,13 @@ async def submit_feedback(record_id: int = Form(...), correct_disease: str = For
         shutil.move(old_path, new_path)
         
     return {"status": "success", "message": "Feedback saved for continuous learning."}
+
+
+@router.get("/export-data", dependencies=[Depends(verify_colab_key)])
+def export_verified_data():
+    """Colab calls this to download verified images directly from the backend."""
+    if not os.path.exists("data/verified") or not os.listdir("data/verified"):
+        raise HTTPException(status_code=404, detail="No verified data available yet.")
+        
+    shutil.make_archive("verified_data", 'zip', "data/verified")
+    return FileResponse("verified_data.zip", media_type="application/zip", filename="verified_data.zip")
