@@ -60,3 +60,18 @@ def load_model():
         print("Model loaded successfully.")
     except Exception as e:
         print(f"Error loading model: {e}")
+    
+def predict(image_bytes: bytes):
+    if model is None:
+        raise RuntimeError("Model is not loaded. Please upload a model or check logs.")
+        
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    input_tensor = transform(image).unsqueeze(0).to(device)
+    
+    # 1. Standard Inference
+    with torch.no_grad():
+        outputs = model(input_tensor)
+        _, predicted_idx = torch.max(outputs, 1)
+        confidence = torch.nn.functional.softmax(outputs, dim=1)[0][predicted_idx].item()
+        
+    disease_name = settings.CLASS_NAMES[predicted_idx.item()] if predicted_idx.item() < len(settings.CLASS_NAMES) else f"Unknown ({predicted_idx.item()})"
