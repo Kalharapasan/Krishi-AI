@@ -94,3 +94,7 @@ async def upload_new_model(file: UploadFile = File(...)):
         
     load_model()
     return {"status": "success", "message": "Model successfully updated and reloaded in real time!"}
+
+@router.get("/health")
+def health_check():
+    return {"status": "ok", "message": "Krishi AI Backend is running."}
