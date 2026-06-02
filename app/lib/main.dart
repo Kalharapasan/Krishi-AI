@@ -7,7 +7,7 @@ import 'api_service.dart';
 
 
 void main() {
-  runApp(const MyApp());
+  runApp(const KrishiApp());
 }
 
 class MyApp extends StatelessWidget {
