@@ -39,11 +39,45 @@ class _HomePageState extends State<HomePage> {
   int? _recordId;
   bool _isLoading = false;
   bool _feedbackSubmitted = false;
+  bool _statusLoading = true;
+  String? _statusError;
+  Map<String, dynamic>? _systemStatus;
   final ApiService _apiService = ApiService();
   
   // Update this list with your actual classes
   final List<String> _diseases = ["Healthy", "Apple Scab", "Rice Leaf Smut", "Tomato Blight", "Unknown"];
   String? _selectedFeedback;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSystemStatus();
+  }
+
+  Future<void> _loadSystemStatus() async {
+    setState(() {
+      _statusLoading = true;
+      _statusError = null;
+    });
+
+    try {
+      final status = await _apiService.fetchSystemStatus();
+      if (!mounted) return;
+      setState(() {
+        _systemStatus = status;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _statusError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _statusLoading = false;
+      });
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -137,6 +171,7 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 _apiService.updateBaseUrl(urlController.text);
                 Navigator.pop(context);
+                _loadSystemStatus();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('API URL updated to: ${_apiService.baseUrl}')),
                 );
@@ -149,6 +184,75 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildStatusIndicator(bool connected, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: connected ? Colors.green.shade100 : Colors.red.shade100,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: connected ? Colors.green.shade900 : Colors.red.shade900,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionCard() {
+    final backend = (_systemStatus?['backend'] as Map?)?.cast<String, dynamic>() ?? {};
+    final colab = (_systemStatus?['colab'] as Map?)?.cast<String, dynamic>() ?? {};
+    final backendRunning = backend['running'] == true;
+    final modelLoaded = backend['model_loaded'] == true;
+    final colabConnected = colab['connected'] == true;
+    final lastSeen = colab['last_seen']?.toString() ?? 'Never';
+
+    return Card(
+      elevation: 0,
+      color: Colors.green.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Connection Status',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                if (_statusLoading)
+                  const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else if (_statusError != null)
+                  _buildStatusIndicator(false, 'Offline')
+                else
+                  _buildStatusIndicator(backendRunning && colabConnected, colabConnected ? 'Colab Connected' : 'Colab Disconnected'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('Backend: ${backendRunning ? 'Running' : 'Down'}'),
+            Text('Model loaded: ${modelLoaded ? 'Yes' : 'No'}'),
+            Text('Colab last seen: $lastSeen'),
+            if (_statusError != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Status check failed: $_statusError',
+                style: TextStyle(color: Colors.red.shade700),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,6 +260,11 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Krishi AI - XAI Edition'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadSystemStatus,
+            tooltip: 'Refresh connection status',
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: _showSettingsDialog,
@@ -170,6 +279,8 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                _buildConnectionCard(),
+                const SizedBox(height: 20),
                 if (_image != null)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

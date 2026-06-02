@@ -49,4 +49,15 @@ class ApiService {
     );
     return response.statusCode == 200;
   }
+
+  Future<Map<String, dynamic>> fetchSystemStatus() async {
+    var uri = Uri.parse('$baseUrl/health');
+    var response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    }
+
+    throw Exception('Failed to fetch system status: ${response.statusCode}');
+  }
 }
