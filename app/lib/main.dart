@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'api_service.dart';
 
-
 void main() {
   runApp(const KrishiApp());
 }
@@ -149,3 +148,126 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Krishi AI - XAI Edition'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _showSettingsDialog,
+            tooltip: 'Settings',
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_image != null)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            const Text('Original Image', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 5),
+                            Image.file(_image!, height: 180, fit: BoxFit.cover),
+                          ],
+                        ),
+                      ),
+                      if (_heatmapBytes != null) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              const Text('AI Heatmap (XAI)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                              const SizedBox(height: 5),
+                              Image.memory(_heatmapBytes!, height: 180, fit: BoxFit.cover),
+                            ],
+                          ),
+                        ),
+                      ]
+                    ],
+                  )
+                else
+                  const Text('Select an image of a plant leaf'),
+                  
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _pickImage(ImageSource.camera),
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Camera'),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: () => _pickImage(ImageSource.gallery),
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text('Gallery'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _image != null && !_isLoading ? _diagnose : null,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _isLoading && _recordId == null
+                      ? const CircularProgressIndicator(color: Colors.white) 
+                      : const Text('Diagnose Image', style: TextStyle(fontSize: 18)),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _result,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                
+                // Feedback UI Section
+                if (_recordId != null && !_feedbackSubmitted) ...[
+                  const Divider(height: 40, thickness: 2),
+                  const Text("Was this correct?", style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 10),
+                  DropdownButton<String>(
+                    value: _selectedFeedback,
+                    items: _diseases.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _selectedFeedback = newValue;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _submitFeedback,
+                    child: _isLoading 
+                        ? const CircularProgressIndicator()
+                        : const Text('Submit Feedback'),
+                  )
+                ]
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
