@@ -1,14 +1,44 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+
+def _resolve_model_path() -> str:
+    raw_path = os.getenv("LOCAL_MODEL_PATH", "model/best_plant_model.pth").strip().strip('"').strip("'")
+    candidate_paths = []
+
+    if raw_path:
+        raw_candidate = Path(raw_path)
+        candidate_paths.append(raw_candidate)
+
+        if raw_candidate.is_absolute():
+            candidate_paths.append(BASE_DIR / raw_candidate.as_posix().lstrip("/\\"))
+        else:
+            candidate_paths.append(BASE_DIR / raw_candidate)
+
+    candidate_paths.extend(
+        [
+            BASE_DIR / "model" / "best_plant_model.pth",
+            BASE_DIR / "model" / "latest_model.pth",
+        ]
+    )
+
+    for candidate in candidate_paths:
+        if candidate.exists():
+            return str(candidate)
+
+    return str(BASE_DIR / "model" / "best_plant_model.pth")
 
 class Settings:
     PROJECT_NAME = os.getenv("PROJECT_NAME", "Krishi AI Advanced Backend")
 
     # Storage & Database
     DATABASE_URL    = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/krishi_db")
-    LOCAL_MODEL_PATH = os.getenv("LOCAL_MODEL_PATH", "latest_model.pth")
+    LOCAL_MODEL_PATH = _resolve_model_path()
 
     # Security
     TRAINING_API_KEY = os.getenv("TRAINING_API_KEY", "krishi_secure_api_key_2026")
