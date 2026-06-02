@@ -47,6 +47,7 @@ class PlantDiseaseClassifier(nn.Module):
         return x
 
 def load_model():
+    """Loads the model weights from the local file."""
     global model
     print("Loading PyTorch model into memory...")
     try:
@@ -60,8 +61,9 @@ def load_model():
         print("Model loaded successfully.")
     except Exception as e:
         print(f"Error loading model: {e}")
-    
+
 def predict(image_bytes: bytes):
+    """Runs inference and generates a Grad-CAM heatmap."""
     if model is None:
         raise RuntimeError("Model is not loaded. Please upload a model or check logs.")
         
@@ -100,7 +102,7 @@ def predict(image_bytes: bytes):
         buffered = io.BytesIO()
         cam_pil.save(buffered, format="JPEG")
         heatmap_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    
+        
     except Exception as e:
         print(f"Grad-CAM generation failed: {e}")
         
