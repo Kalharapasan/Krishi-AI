@@ -9,6 +9,54 @@ import uuid
 
 router = APIRouter()
 
+
+def _format_disease_name(raw: str) -> str:
+    parts = raw.split("___")
+    if len(parts) == 2:
+        plant = parts[0].replace("_", " ")
+        condition = parts[1].replace("_", " ")
+        return f"{plant} — {condition}"
+    return raw.replace("_", " ")
+
+
+def _split_disease_label(raw: str) -> tuple[str, str]:
+    parts = raw.split("___")
+    if len(parts) == 2:
+        return parts[0].replace("_", " "), parts[1].replace("_", " ")
+    return "Unknown plant", raw.replace("_", " ")
+
+
+def _diagnosis_summary(raw_disease: str, confidence: float) -> dict:
+    plant, condition = _split_disease_label(raw_disease)
+    disease_lower = raw_disease.lower()
+    healthy = "healthy" in disease_lower
+
+    if healthy:
+        explanation = (
+            "The model thinks the leaf looks healthy. Keep monitoring the plant and continue normal care."
+            if confidence >= 80
+            else "The model leans toward a healthy leaf, but the confidence is not very strong. Check the leaf again in good light."
+        )
+        advice = "No treatment is needed right now. Keep watering, spacing, and sunlight conditions consistent."
+    elif confidence >= 80:
+        explanation = "The model is strongly suggesting a disease pattern. Remove badly affected leaves and inspect nearby plants."
+        advice = "Check nearby leaves, remove heavily infected parts, and avoid wetting the foliage when watering."
+    elif confidence >= 50:
+        explanation = "The model sees signs of disease, but it is not fully certain. Recheck the image and compare with more leaves."
+        advice = "Monitor the plant daily, isolate if symptoms spread, and compare with trusted crop disease references."
+    else:
+        explanation = "The model is unsure. This may need a clearer photo or a closer inspection by someone familiar with the crop."
+        advice = "Take a clearer photo in daylight, then compare with trusted disease references or an agronomist."
+
+    return {
+        "plant": plant,
+        "condition": condition,
+        "formatted_label": _format_disease_name(raw_disease),
+        "summary": explanation,
+        "next_step": advice,
+        "confidence_level": "high" if confidence >= 80 else "medium" if confidence >= 50 else "low",
+    }
+
 # Security dependency for Colab connection
 def verify_colab_key(x_api_key: str = Header(...)):
     if x_api_key != settings.TRAINING_API_KEY:
@@ -36,11 +84,13 @@ async def diagnose_crop(file: UploadFile = File(...)):
             f.write(image_bytes)
 
         record_id = save_diagnosis(filepath, disease_name, confidence)
+        diagnosis_summary = _diagnosis_summary(disease_name, confidence)
 
         return {
             "id":         record_id,
             "disease":    disease_name,
             "confidence": confidence,
+            "diagnosis":  diagnosis_summary,
             "heatmap":    heatmap_base64,
             "message":    "Diagnosis complete."
         }
@@ -97,6 +147,11 @@ def health_check():
     return {
         "status":       "ok",
         "model_loaded": model_loaded,
+        "api_summary": {
+            "label": "Backend API check",
+            "message": "The backend is reachable and ready to return plant disease results.",
+            "next_step": "Upload an image to /diagnose or update the model from Colab if the backend says the model is not loaded.",
+        },
         "message":      "Krishi AI backend is running." if model_loaded
                         else "Backend running but model not loaded — upload a model first."
     }

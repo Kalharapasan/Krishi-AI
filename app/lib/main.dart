@@ -219,6 +219,55 @@ class _HomePageState extends State<HomePage> {
     return Colors.red;
   }
 
+  String _diagnosisInsight(String rawDisease, double confidence) {
+    final disease = rawDisease.toLowerCase();
+    final isHealthy = disease.contains('healthy');
+
+    if (isHealthy) {
+      return confidence >= 80
+          ? 'The model thinks this leaf looks healthy. Keep monitoring the plant and continue normal care.'
+          : 'The model leans toward a healthy leaf, but the confidence is not very strong. Check the leaf again in good light.';
+    }
+
+    if (confidence >= 80) {
+      return 'The model is strongly suggesting a disease pattern. Remove badly affected leaves and inspect nearby plants.';
+    }
+
+    if (confidence >= 50) {
+      return 'The model sees signs of disease, but it is not fully certain. Recheck the image and compare with more leaves.';
+    }
+
+    return 'The model is unsure. This may need a clearer photo or a closer inspection by someone familiar with the crop.';
+  }
+
+  String _nextStepAdvice(String rawDisease) {
+    final disease = rawDisease.toLowerCase();
+    if (disease.contains('healthy')) {
+      return 'No treatment is needed right now. Keep watering, spacing, and sunlight conditions consistent.';
+    }
+
+    if (disease.contains('blight') || disease.contains('spot') || disease.contains('mold') || disease.contains('rust')) {
+      return 'Check nearby leaves, remove heavily infected parts, and avoid wetting the foliage when watering.';
+    }
+
+    return 'Monitor the plant daily, isolate if symptoms spread, and compare with trusted crop disease references.';
+  }
+
+  ({String plant, String condition}) _splitDiseaseLabel(String rawDisease) {
+    final parts = rawDisease.split('___');
+    if (parts.length == 2) {
+      return (
+        plant: parts[0].replaceAll('_', ' '),
+        condition: parts[1].replaceAll('_', ' '),
+      );
+    }
+
+    return (
+      plant: 'Unknown plant',
+      condition: rawDisease.replaceAll('_', ' '),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -376,36 +425,103 @@ class _HomePageState extends State<HomePage> {
                 elevation: 3,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Column(children: [
-                    Text(
-                      _formatDiseaseName(_resultDisease),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('Confidence: ', style: TextStyle(fontSize: 15)),
-                        Text(
-                          '${_resultConfidence.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: _confidenceColor(_resultConfidence),
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Text(
+                          _formatDiseaseName(_resultDisease),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    LinearProgressIndicator(
-                      value: _resultConfidence / 100,
-                      color: _confidenceColor(_resultConfidence),
-                      backgroundColor: Colors.grey.shade200,
-                      minHeight: 8,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ]),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.shade100),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'What this means',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade900,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _diagnosisInsight(_resultDisease, _resultConfidence),
+                              style: const TextStyle(height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildInfoTile(
+                              'Plant',
+                              _splitDiseaseLabel(_resultDisease).plant,
+                              Icons.eco,
+                              Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildInfoTile(
+                              'Condition',
+                              _splitDiseaseLabel(_resultDisease).condition,
+                              Icons.health_and_safety,
+                              _confidenceColor(_resultConfidence),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Confidence: ', style: TextStyle(fontSize: 15)),
+                          Text(
+                            '${_resultConfidence.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: _confidenceColor(_resultConfidence),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      LinearProgressIndicator(
+                        value: _resultConfidence / 100,
+                        color: _confidenceColor(_resultConfidence),
+                        backgroundColor: Colors.grey.shade200,
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Recommended next step',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _nextStepAdvice(_resultDisease),
+                        style: const TextStyle(height: 1.4),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -465,6 +581,38 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
