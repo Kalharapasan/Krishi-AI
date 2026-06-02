@@ -190,7 +190,7 @@ class _HomePageState extends State<HomePage> {
           controller: urlController,
           decoration: const InputDecoration(
             labelText: 'Backend / Ngrok URL',
-            hintText: 'http://10.0.2.2:8000/api',
+            hintText: 'https://regain-agile-army.ngrok-free.dev',
           ),
         ),
         actions: [

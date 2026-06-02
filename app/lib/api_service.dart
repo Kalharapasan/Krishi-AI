@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
-// ✅ NEW: thrown when backend returns 503 (model not yet loaded)
+
 class ModelNotLoadedException implements Exception {
   final String message;
   ModelNotLoadedException([this.message = 'AI model is not loaded on the backend yet.']);
@@ -11,9 +11,7 @@ class ModelNotLoadedException implements Exception {
 }
 
 class ApiService {
-  // Default: Android emulator localhost. Change to your machine's LAN IP for a real device.
-  // e.g. 'http://192.168.1.100:8000/api'  or a Ngrok URL
-  String baseUrl = 'http://10.0.2.2:8000/api';
+  String baseUrl = 'https://regain-agile-army.ngrok-free.dev';
 
   void updateBaseUrl(String newUrl) {
     baseUrl = newUrl.trim();
