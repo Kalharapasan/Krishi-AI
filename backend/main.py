@@ -1,13 +1,11 @@
 import os
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.api.routes import router
-from app.api.routes import export_verified_data, verify_colab_key
 from app.services.ml_service import load_model
 from app.config import settings
 
 from app.database import init_db
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,12 +33,6 @@ app = FastAPI(
 
 # Include routers
 app.include_router(router, prefix="/api")
-
-
-@app.get("/export-data")
-def export_data_alias(x_api_key: str = Header(...)):
-    verify_colab_key(x_api_key)
-    return export_verified_data()
 
 if __name__ == "__main__":
     import uvicorn
