@@ -534,7 +534,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedFeedback,
+                initialValue: _selectedFeedback,
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: 'Select correct disease',
