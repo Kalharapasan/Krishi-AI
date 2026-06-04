@@ -80,30 +80,32 @@ def predict(image_bytes: bytes):
     
     # 2. Explainable AI (Grad-CAM)
     heatmap_base64 = None
-    try:
-        from pytorch_grad_cam import GradCAM
-        from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
-        from pytorch_grad_cam.utils.image import show_cam_on_image
-        
-        # Target the last convolutional layer of EfficientNet
-        target_layers = [model.model.features[-1]]
-        cam = GradCAM(model=model, target_layers=target_layers)
-        targets = [ClassifierOutputTarget(predicted_idx.item())]
-        
-        grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
-        grayscale_cam = grayscale_cam[0, :]
-        
-        # Resize original image to match tensor size (224x224) and normalize [0, 1]
-        rgb_img = np.float32(image.resize((224, 224))) / 255
-        cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
-        
-        # Encode as Base64 JPEG
-        cam_pil = Image.fromarray(cam_image)
-        buffered = io.BytesIO()
-        cam_pil.save(buffered, format="JPEG")
-        heatmap_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        
-    except Exception as e:
-        print(f"Grad-CAM generation failed: {e}")
+    # Optionally skip Grad-CAM if configured to speed up inference
+    if not getattr(settings, "SKIP_HEATMAP", False):
+        try:
+            from pytorch_grad_cam import GradCAM
+            from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+            from pytorch_grad_cam.utils.image import show_cam_on_image
+
+            # Target the last convolutional layer of EfficientNet
+            target_layers = [model.model.features[-1]]
+            cam = GradCAM(model=model, target_layers=target_layers)
+            targets = [ClassifierOutputTarget(predicted_idx.item())]
+
+            grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
+            grayscale_cam = grayscale_cam[0, :]
+
+            # Resize original image to match tensor size (224x224) and normalize [0, 1]
+            rgb_img = np.float32(image.resize((224, 224))) / 255
+            cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
+
+            # Encode as Base64 JPEG
+            cam_pil = Image.fromarray(cam_image)
+            buffered = io.BytesIO()
+            cam_pil.save(buffered, format="JPEG")
+            heatmap_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+        except Exception as e:
+            print(f"Grad-CAM generation failed: {e}")
         
     return disease_name, round(confidence * 100, 2), heatmap_base64

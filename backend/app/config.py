@@ -45,6 +45,8 @@ class Settings:
 
     # ML Model Config
     NUM_CLASSES = int(os.getenv("NUM_CLASSES", "38"))
+    # If true, skip expensive Grad-CAM heatmap generation to speed up inference
+    SKIP_HEATMAP = os.getenv("SKIP_HEATMAP", "false").lower() in ("1", "true", "yes")
 
     # ✅ FIXED: All 38 real PlantVillage dataset class names (alphabetical order,
     # matching datasets.ImageFolder which sorts folder names alphabetically).

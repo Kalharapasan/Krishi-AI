@@ -20,8 +20,20 @@ class ApiService {
     }
   }
 
+  /// Ensure paths are sent to the backend under the `/api` prefix.
+  Uri _buildUri(String path) {
+    var cleanedBase = baseUrl;
+    if (cleanedBase.endsWith('/')) cleanedBase = cleanedBase.substring(0, cleanedBase.length - 1);
+    // Add /api if user didn't include it already
+    if (!path.startsWith('/')) path = '/$path';
+    if (!cleanedBase.endsWith('/api') && !path.startsWith('/api')) {
+      path = '/api$path';
+    }
+    return Uri.parse('$cleanedBase$path');
+  }
+
   Future<Map<String, dynamic>> uploadImageAndDiagnose(File imageFile) async {
-    final uri     = Uri.parse('$baseUrl/diagnose');
+    final uri     = _buildUri('/diagnose');
     final request = http.MultipartRequest('POST', uri);
     request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
@@ -50,7 +62,7 @@ class ApiService {
   }
 
   Future<bool> submitFeedback(int recordId, String correctDisease) async {
-    final uri      = Uri.parse('$baseUrl/feedback');
+    final uri      = _buildUri('/feedback');
     final response = await http.post(
       uri,
       body: {
