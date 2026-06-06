@@ -12,25 +12,33 @@ class ModelNotLoadedException implements Exception {
 }
 
 class ApiService {
-  String baseUrl = dotenv.env['BASE_URL']?.trim();
+  String? baseUrl = dotenv.env['BASE_URL']?.trim();
 
   void updateBaseUrl(String newUrl) {
-    baseUrl = newUrl.trim();
-    if (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-    }
+    var url = newUrl.trim();
+    if (url.endsWith('/')) url = url.substring(0, url.length - 1);
+    baseUrl = url;
   }
 
   /// Ensure paths are sent to the backend under the `/api` prefix.
   Uri _buildUri(String path) {
-    var cleanedBase = baseUrl;
-    if (cleanedBase.endsWith('/')) cleanedBase = cleanedBase.substring(0, cleanedBase.length - 1);
-    // Add /api if user didn't include it already
+    final cleanedBase = (baseUrl ?? '').trim();
+    if (cleanedBase.isEmpty) {
+      throw Exception('Backend BASE_URL is not configured. Set BASE_URL or update settings.');
+    }
+
+    var base = cleanedBase;
+    if (base.endsWith('/')) base = base.substring(0, base.length - 1);
+
+    // Ensure path begins with '/'
     if (!path.startsWith('/')) path = '/$path';
-    if (!cleanedBase.endsWith('/api') && !path.startsWith('/api')) {
+
+    // Ensure requests target the backend's /api prefix
+    if (!base.endsWith('/api') && !path.startsWith('/api')) {
       path = '/api$path';
     }
-    return Uri.parse('$cleanedBase$path');
+
+    return Uri.parse('$base$path');
   }
 
   Future<Map<String, dynamic>> uploadImageAndDiagnose(File imageFile) async {
