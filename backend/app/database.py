@@ -25,6 +25,8 @@ def init_db():
         conn.commit()
         conn.close()
         print("PostgreSQL Database initialized successfully.")
+    except psycopg2.OperationalError:
+        print("PostgreSQL is not available. Skipping database initialization for now.")
     except Exception as e:
         print(f"Failed to initialize PostgreSQL: {e}")
 

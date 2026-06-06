@@ -34,17 +34,17 @@ def _resolve_model_path() -> str:
     return str(BASE_DIR / "model" / "best_plant_model.pth")
 
 class Settings:
-    PROJECT_NAME = os.getenv("PROJECT_NAME", "Krishi AI Advanced Backend")
+    PROJECT_NAME = os.getenv("PROJECT_NAME")
 
     # Storage & Database
-    DATABASE_URL    = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/krishi_db")
+    DATABASE_URL    = os.getenv("DATABASE_URL")
     LOCAL_MODEL_PATH = _resolve_model_path()
 
     # Security
-    TRAINING_API_KEY = os.getenv("TRAINING_API_KEY", "krishi_secure_api_key_2026")
+    TRAINING_API_KEY = os.getenv("TRAINING_API_KEY")
 
     # ML Model Config
-    NUM_CLASSES = int(os.getenv("NUM_CLASSES", "38"))
+    NUM_CLASSES = int(os.getenv("NUM_CLASSES"))
     # If true, skip expensive Grad-CAM heatmap generation to speed up inference
     SKIP_HEATMAP = os.getenv("SKIP_HEATMAP", "false").lower() in ("1", "true", "yes")
 
