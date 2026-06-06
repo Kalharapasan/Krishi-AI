@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -44,7 +46,19 @@ class ApiService {
   Future<Map<String, dynamic>> uploadImageAndDiagnose(File imageFile) async {
     final uri     = _buildUri('/diagnose');
     final request = http.MultipartRequest('POST', uri);
-    request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+    // Try to detect MIME type from file extension and set content-type for backend
+    final mimeType = lookupMimeType(imageFile.path) ?? 'application/octet-stream';
+    final parts = mimeType.split('/');
+    final contentType = parts.length == 2
+        ? MediaType(parts[0], parts[1])
+        : MediaType('application', 'octet-stream');
+
+    request.files.add(await http.MultipartFile.fromPath(
+      'file',
+      imageFile.path,
+      contentType: contentType,
+    ));
 
     try {
       final streamed  = await request.send().timeout(const Duration(seconds: 60));
