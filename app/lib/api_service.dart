@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 
@@ -11,7 +12,7 @@ class ModelNotLoadedException implements Exception {
 }
 
 class ApiService {
-  String baseUrl = 'https://regain-agile-army.ngrok-free.dev';
+  String baseUrl = dotenv.env['BASE_URL']?.trim();
 
   void updateBaseUrl(String newUrl) {
     baseUrl = newUrl.trim();

@@ -1,0 +1,67 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true 
+
+      - name: Install Hugging Face Hub & Push
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_SPACE: ${{ secrets.HF_SPACE }}
+        run: |
+          set -e
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_USERNAME" ] || [ -z "$HF_SPACE" ]; then
+            echo "ERROR: Please set HF_TOKEN, HF_USERNAME and HF_SPACE in repository Secrets."
+            exit 1
+          fi
+
+          pip install --upgrade huggingface_hub
+          
+          python << 'EOF'
+          import os
+          from huggingface_hub import HfApi
+          
+          hf_token = os.getenv("HF_TOKEN")
+          repo_id = f"{os.getenv('HF_USERNAME')}/{os.getenv('HF_SPACE')}"
+          
+          print(f"Deploying to Hugging Face Space: {repo_id}")
+          
+          api = HfApi(token=hf_token)
+          try:
+              api.upload_folder(
+                  folder_path='.',
+                  repo_id=repo_id,
+                  repo_type='space',
+                  ignore_patterns=['.git*', '.github*', '.env*']
+              )
+              print("Deployment initiated successfully!")
+          except Exception as e:
+              
+              print(f"Standard upload encountered an issue: {e}")
+              print("Attempting advanced fallback deployment...")
+              
+            
+              os.system(f"git remote add hf https://{os.getenv('HF_USERNAME')}:{hf_token}@huggingface.co/spaces/{repo_id} || true")
+              os.system("git config user.name 'GitHub Action'")
+              os.system("git config user.email 'action@github.com'")
+              
+             
+              if os.path.exists(".env"):
+                  os.system("git rm --cached .env || true")
+                  
+              exit_code = os.system("git push hf main --force")
+              if exit_code == 0:
+                  print("Fallback Deployment successful!")
+              else:
+                  raise RuntimeError("Deployment failed using both methods.")
+          EOF
